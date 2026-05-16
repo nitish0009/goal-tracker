@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  EMPLOYEE
+  MANAGER
+  ADMIN
+}
+
+enum GoalSheetStatus {
+  DRAFT
+  SUBMITTED
+  RETURNED
+  APPROVED
+}
+
+enum UomType {
+  NUMERIC_MIN
+  NUMERIC_MAX
+  PERCENT_MIN
+  PERCENT_MAX
+  TIMELINE
+  ZERO_BASED
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  ON_TRACK
+  COMPLETED
+}
+
+enum CyclePhase {
+  GOAL_SETTING
+  Q1_CHECKIN
+  Q2_CHECKIN
+  Q3_CHECKIN
+  Q4_CHECKIN
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  role         Role
+  department   String?
+  managerId    String?
+  manager      User?      @relation("ReportsTo", fields: [managerId], references: [id])
+  directReports User[]    @relation("ReportsTo")
+  goalSheets   GoalSheet[] @relation("EmployeeSheets")
+  approvedSheets GoalSheet[] @relation("Approver")
+  auditLogs    AuditLog[]
+  checkIns     CheckIn[]  @relation("ManagerCheckIns")
+  sharedPushes SharedGoalPush[]
+  createdAt    DateTime   @default(now())
+}
+
+model PerformanceCycle {
+  id          String     @id @default(cuid())
+  year        Int
+  phase       CyclePhase
+  windowStart DateTime
+  windowEnd   DateTime
+  isActive    Boolean    @default(true)
+}
+
+model GoalSheet {
+  id          String          @id @default(cuid())
+  employeeId  String
+  employee    User            @relation("EmployeeSheets", fields: [employeeId], references: [id])
+  year        Int             @default(2026)
+  status      GoalSheetStatus @default(DRAFT)
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  approvedById String?
+  approvedBy  User?           @relation("Approver", fields: [approvedById], references: [id])
+  lockedAt    DateTime?
+  goals       Goal[]
+  checkIns    CheckIn[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([employeeId, year])
+}
+
+model Goal {
+  id                 String          @id @default(cuid())
+  goalSheetId        String
+  goalSheet          GoalSheet       @relation(fields: [goalSheetId], references: [id], onDelete: Cascade)
+  thrustArea         String
+  title              String
+  description        String?
+  uomType            UomType
+  target             String
+  weightage          Float
+  isShared           Boolean         @default(false)
+  sharedGroupId      String?
+  isPrimaryOwner     Boolean         @default(true)
+  actualAchievement  String?
+  deadline           DateTime?
+  completionDate     DateTime?
+  progressStatus     ProgressStatus  @default(NOT_STARTED)
+  sortOrder          Int             @default(0)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
+
+model SharedGoalPush {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  thrustArea  String
+  uomType     UomType
+  target      String
+  pushedById  String
+  pushedBy    User     @relation(fields: [pushedById], references: [id])
+  sharedGroupId String @unique
+  createdAt   DateTime @default(now())
+}
+
+model CheckIn {
+  id              String   @id @default(cuid())
+  goalSheetId     String
+  goalSheet       GoalSheet @relation(fields: [goalSheetId], references: [id], onDelete: Cascade)
+  quarter         CyclePhase
+  managerComment  String?
+  managerId       String?
+  manager         User?    @relation("ManagerCheckIns", fields: [managerId], references: [id])
+  employeeCompletedAt DateTime?
+  managerCompletedAt  DateTime?
+  createdAt       DateTime @default(now())
+
+  @@unique([goalSheetId, quarter])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  field      String
+  oldValue   String?
+  newValue   String?
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+}

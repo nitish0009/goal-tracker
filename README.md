@@ -1,36 +1,107 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AtomQuest Goals — In-House Goal Setting & Tracking Portal
 
-## Getting Started
+[![Repository](https://img.shields.io/badge/GitHub-goal--tracker-blue)](https://github.com/nitish0009/goal-tracker)
 
-First, run the development server:
+Hackathon submission for **ATOMQUEST HACKATHON 1.0**: a web portal for employee goal creation, manager approval, quarterly check-ins, shared KPIs, reporting, and audit trails.
+
+**Repository:** https://github.com/nitish0009/goal-tracker
+
+## Demo credentials
+
+| Role | Email | Password |
+|------|-------|----------|
+| Employee | `employee@atomquest.demo` | `demo123` |
+| Manager (L1) | `manager@atomquest.demo` | `demo123` |
+| Admin / HR | `admin@atomquest.demo` | `demo123` |
+
+Use **Quick demo login** buttons on the sign-in page, or sign in manually.
+
+**Tip:** Use the header **Demo cycle** dropdown to simulate Goal Setting (May) or Q1–Q4 check-in windows without waiting for calendar dates.
+
+## Quick start
 
 ```bash
+npm install
+npx prisma migrate dev
+npm run db:seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Architecture
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```mermaid
+flowchart TB
+  subgraph client [Browser]
+    UI[Next.js App Router + React]
+  end
+  subgraph server [Node.js Server]
+    API[Route Handlers /api]
+    Auth[JWT Session Cookies]
+  end
+  subgraph data [Data Layer]
+    Prisma[Prisma ORM 7]
+    SQLite[(SQLite file)]
+  end
+  UI --> API
+  API --> Auth
+  API --> Prisma
+  Prisma --> SQLite
+```
 
-## Learn More
+| Layer | Choice | Rationale |
+|-------|--------|-----------|
+| Frontend | Next.js 16, React 19, Tailwind CSS 4 | Single codebase, SSR, fast hackathon delivery |
+| Backend | Next.js Route Handlers | No separate API server; low hosting cost |
+| Database | SQLite + Prisma | Zero external DB cost; portable demo |
+| Auth | JWT in httpOnly cookies | Simple role-based access (Employee / Manager / Admin) |
 
-To learn more about Next.js, take a look at the following resources:
+**Cost optimisation:** Single Node process, embedded SQLite, no paid cloud DB or auth SaaS required for the demo. Production could swap SQLite for PostgreSQL and add Entra ID (see BRD good-to-haves).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Features implemented
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Phase 1 — Goal creation & approval
+- Goal sheet with Thrust Area, title, description, UoM, target, weightage
+- Validation: total weightage = 100%, min 10% per goal, max 8 goals
+- Submit → Manager approve (inline edit) or return for rework
+- Locked goals after approval; Admin unlock
+- Shared goals: Admin/Manager push KPI; recipients adjust weightage only; primary owner syncs achievement
 
-## Deploy on Vercel
+### Phase 2 — Achievement & check-ins
+- Quarterly actuals, status (Not Started / On Track / Completed)
+- Manager check-in comments
+- Progress scores: Min/Max numeric & %, Timeline, Zero-based formulas
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Governance
+- CSV achievement export
+- Completion dashboard (Admin)
+- Audit log for post-lock changes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Cycle windows (enforced + demo override)
+| Period | Window |
+|--------|--------|
+| Goal Setting | 1 May – 30 Jun |
+| Q1 | July |
+| Q2 | October |
+| Q3 | January |
+| Q4 / Annual | March – April |
+
+## Demo journey
+
+1. **Employee:** Demo cycle → Goal Setting → edit goals → Submit.
+2. **Manager:** Approvals → review/edit → Approve & lock.
+3. **Employee:** Demo cycle → Q1 → enter actuals → Save check-in.
+4. **Manager:** Check-ins → add comment → complete.
+5. **Admin:** Dashboard, Reports (CSV), Audit, Shared Goals.
+
+## Scripts
+
+- `npm run dev` — development server
+- `npm run build` — production build
+- `npm run db:seed` — reset demo users and sample data
+- `npm run db:reset` — migrate reset + seed
+
+## Good-to-haves (not in MVP)
+
+Azure AD SSO, Teams notifications, escalation rules, and analytics dashboards are outlined in the BRD and can extend this codebase via middleware auth and scheduled jobs.
