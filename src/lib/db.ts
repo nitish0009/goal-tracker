@@ -7,12 +7,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 export function createPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error(
-      "DATABASE_URL is not set. Use a PostgreSQL URL for deployment or a SQLite file URL for local demo use."
-    );
-  }
+  const connectionString = process.env.DATABASE_URL || "file:./dev.db";
 
   const adapter = connectionString.startsWith("file:")
     ? new PrismaBetterSqlite3({ url: connectionString })
