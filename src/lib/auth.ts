@@ -37,6 +37,8 @@ export async function login(email: string, password: string) {
       email,
       name: fallbackUser.name,
       role: fallbackUser.role,
+      department: fallbackUser.department,
+      managerId: null, // Fallback employees don't have managers
       passwordHash: "", // Not used for fallback users
     } as any);
   }

@@ -9,6 +9,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
+  // For fallback users (when database is unavailable), return empty team
+  if (auth.session.id.startsWith("fallback-")) {
+    return NextResponse.json([]);
+  }
+
   const year = parseInt(new URL(req.url).searchParams.get("year") ?? "2026", 10);
 
   const where =

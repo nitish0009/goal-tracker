@@ -11,6 +11,12 @@ export async function GET(req: Request) {
   if (!auth.session) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+
+  // For fallback users (when database is unavailable), return empty sheet
+  if (auth.session.id.startsWith("fallback-")) {
+    return NextResponse.json({ id: auth.session.id, goals: [], year: 2026, status: "DRAFT" });
+  }
+
   const { searchParams } = new URL(req.url);
   const year = parseInt(searchParams.get("year") ?? "2026", 10);
   const employeeId =

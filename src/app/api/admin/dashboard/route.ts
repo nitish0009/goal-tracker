@@ -11,6 +11,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
+  // For fallback users (when database is unavailable), return empty dashboard
+  if (auth.session.id.startsWith("fallback-")) {
+    return NextResponse.json({ employees: [], checkInPhase: "Q1_CHECKIN", stats: { total: 0, approved: 0, checkins: 0 } });
+  }
+
   const year = parseInt(new URL(req.url).searchParams.get("year") ?? "2026", 10);
   const demoPhase = await getDemoCyclePhase();
   const checkInPhase =
