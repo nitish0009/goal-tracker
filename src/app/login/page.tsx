@@ -14,19 +14,33 @@ export default function LoginPage() {
   async function handleLogin(loginEmail: string, loginPassword: string) {
     setLoading(true);
     setError("");
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: loginEmail, password: loginPassword }),
-    });
-    const data = await res.json();
-    setLoading(false);
-    if (!res.ok) {
-      setError(data.error ?? "Login failed");
-      return;
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      });
+      
+      let data;
+      const contentType = res.headers.get("content-type");
+      if (contentType?.includes("application/json")) {
+        data = await res.json();
+      } else {
+        data = {};
+      }
+      
+      setLoading(false);
+      if (!res.ok) {
+        setError(data.error ?? "Login failed");
+        return;
+      }
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      setLoading(false);
+      setError("An error occurred during login. Please try again.");
+      console.error("Login error:", err);
     }
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (

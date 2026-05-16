@@ -1,10 +1,16 @@
 import "dotenv/config";
-import { PrismaClient, Role, GoalSheetStatus, UomType } from "../src/generated/prisma/client";
-import { createPrismaClient } from "../src/lib/db";
 import bcrypt from "bcryptjs";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient, GoalSheetStatus, Role, UomType } from "../src/generated/prisma/client";
 import { getCycleWindows } from "../src/lib/cycles";
 
-const prisma: PrismaClient = createPrismaClient();
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error("DATABASE_URL is required to seed the Postgres database.");
+}
+
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
 async function main() {
   await prisma.auditLog.deleteMany();
@@ -60,19 +66,19 @@ async function main() {
   });
 
   const year = 2026;
-  for (const w of getCycleWindows(year)) {
+  for (const window of getCycleWindows(year)) {
     await prisma.performanceCycle.create({
       data: {
         year,
-        phase: w.phase,
-        windowStart: w.windowStart,
-        windowEnd: w.windowEnd,
+        phase: window.phase,
+        windowStart: window.windowStart,
+        windowEnd: window.windowEnd,
         isActive: true,
       },
     });
   }
 
-  await prisma.goalSheet.create({
+  const sheet = await prisma.goalSheet.create({
     data: {
       employeeId: employee.id,
       year,
@@ -82,7 +88,7 @@ async function main() {
           {
             thrustArea: "Revenue Growth",
             title: "Increase regional sales",
-            description: "Grow Q1–Q4 revenue in assigned territory",
+            description: "Grow Q1-Q4 revenue in assigned territory",
             uomType: UomType.NUMERIC_MIN,
             target: "5000000",
             weightage: 40,
@@ -99,9 +105,10 @@ async function main() {
           },
           {
             thrustArea: "Operational Excellence",
-            title: "Reduce order TAT",
-            uomType: UomType.NUMERIC_MAX,
-            target: "48",
+            title: "Process optimization",
+            description: "Reduce order processing time by 20%",
+            uomType: UomType.PERCENT_MAX,
+            target: "20",
             weightage: 30,
             sortOrder: 2,
           },
@@ -110,19 +117,21 @@ async function main() {
     },
   });
 
-  console.log("Seed complete.");
-  console.log("Demo logins (password: demo123):");
-  console.log("  Employee:", employee.email);
-  console.log("  Manager:", manager.email);
-  console.log("  Admin:", admin.email);
+  console.log("Database seeded successfully with demo accounts.");
+  console.log({
+    admin: admin.email,
+    manager: manager.email,
+    employee: employee.email,
+    demoPassword: "demo123",
+    goalSheetId: sheet.id,
+  });
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect();
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
   })
-  .catch(async (e) => {
-    console.error(e);
+  .finally(async () => {
     await prisma.$disconnect();
-    process.exit(1);
   });
