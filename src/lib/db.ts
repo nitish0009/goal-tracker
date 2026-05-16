@@ -7,7 +7,13 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 export function createPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL || "file:./dev.db";
+  let connectionString = process.env.DATABASE_URL;
+  
+  if (!connectionString) {
+    // Use /tmp for Vercel (persists during deployment), ./ for local dev
+    const dbPath = process.env.NODE_ENV === "production" ? "/tmp/dev.db" : "./dev.db";
+    connectionString = `file:${dbPath}`;
+  }
 
   const adapter = connectionString.startsWith("file:")
     ? new PrismaBetterSqlite3({ url: connectionString })

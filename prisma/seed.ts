@@ -5,10 +5,12 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, GoalSheetStatus, Role, UomType } from "../src/generated/prisma/client";
 import { getCycleWindows } from "../src/lib/cycles";
 
-const connectionString = process.env.DATABASE_URL;
+let connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  throw new Error("DATABASE_URL is required to seed the Postgres database.");
+  // Use /tmp for Vercel (persists during deployment), ./ for local dev
+  const dbPath = process.env.NODE_ENV === "production" ? "/tmp/dev.db" : "./dev.db";
+  connectionString = `file:${dbPath}`;
 }
 
 const adapter = connectionString.startsWith("file:")
