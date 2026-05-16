@@ -1,5 +1,6 @@
 import "dotenv/config";
 import bcrypt from "bcryptjs";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, GoalSheetStatus, Role, UomType } from "../src/generated/prisma/client";
 import { getCycleWindows } from "../src/lib/cycles";
@@ -10,7 +11,11 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is required to seed the Postgres database.");
 }
 
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+const adapter = connectionString.startsWith("file:")
+  ? new PrismaBetterSqlite3({ url: connectionString })
+  : new PrismaPg({ connectionString });
+
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   await prisma.auditLog.deleteMany();
