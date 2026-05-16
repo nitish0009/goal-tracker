@@ -102,6 +102,3 @@ flowchart TB
 - `npm run db:seed` — reset demo users and sample data
 - `npm run db:reset` — migrate reset + seed
 
-## Good-to-haves (not in MVP)
-
-Azure AD SSO, Teams notifications, escalation rules, and analytics dashboards are outlined in the BRD and can extend this codebase via middleware auth and scheduled jobs.
