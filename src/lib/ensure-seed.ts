@@ -7,19 +7,19 @@ let seedAttempted = false;
 let seedFailed = false;
 
 // Fallback demo users if database fails
-const FALLBACK_DEMO_USERS: Record<string, { passwordHash: string; name: string; role: Role }> = {
+const FALLBACK_DEMO_USERS: Record<string, { name: string; role: Role; password: string }> = {
   "admin@atomquest.demo": {
-    passwordHash: "$2a$10$slYQmyNdGzin7olVZeVv2OPST9/PgBkqquzi.Ss7KLUgO2L0jQH3C", // bcrypt hash of "demo123"
+    password: "demo123",
     name: "Priya Sharma (HR Admin)",
     role: Role.ADMIN,
   },
   "manager@atomquest.demo": {
-    passwordHash: "$2a$10$slYQmyNdGzin7olVZeVv2OPST9/PgBkqquzi.Ss7KLUgO2L0jQH3C",
+    password: "demo123",
     name: "Rajesh Kumar (L1 Manager)",
     role: Role.MANAGER,
   },
   "employee@atomquest.demo": {
-    passwordHash: "$2a$10$slYQmyNdGzin7olVZeVv2OPST9/PgBkqquzi.Ss7KLUgO2L0jQH3C",
+    password: "demo123",
     name: "Anita Desai",
     role: Role.EMPLOYEE,
   },
@@ -153,11 +153,12 @@ export async function ensureDemoData() {
 }
 
 // Fallback auth when database is unavailable
-export function getFallbackUser(email: string): { passwordHash: string; name: string; role: Role; id: string } | null {
+export function getFallbackUser(email: string, password: string): { name: string; role: Role; id: string } | null {
   const user = FALLBACK_DEMO_USERS[email as keyof typeof FALLBACK_DEMO_USERS];
-  if (!user) return null;
+  if (!user || user.password !== password) return null;
   return {
-    ...user,
+    name: user.name,
+    role: user.role,
     id: `fallback-${email.split("@")[0]}`, // Generate a stable ID
   };
 }

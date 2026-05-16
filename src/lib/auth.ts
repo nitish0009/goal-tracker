@@ -30,14 +30,14 @@ export async function login(email: string, password: string) {
   }
 
   // Fallback to in-memory demo users if database is unavailable
-  const fallbackUser = getFallbackUser(email);
-  if (fallbackUser && await bcrypt.compare(password, fallbackUser.passwordHash)) {
+  const fallbackUser = getFallbackUser(email, password);
+  if (fallbackUser) {
     return createSession({
       id: fallbackUser.id,
       email,
       name: fallbackUser.name,
       role: fallbackUser.role,
-      passwordHash: fallbackUser.passwordHash,
+      passwordHash: "", // Not used for fallback users
     } as any);
   }
 
