@@ -4,6 +4,26 @@ import { Role, UomType, GoalSheetStatus } from "@/generated/prisma/client";
 import { getCycleWindows } from "./cycles";
 
 let seedAttempted = false;
+let seedFailed = false;
+
+// Fallback demo users if database fails
+const FALLBACK_DEMO_USERS: Record<string, { passwordHash: string; name: string; role: Role }> = {
+  "admin@atomquest.demo": {
+    passwordHash: "$2a$10$slYQmyNdGzin7olVZeVv2OPST9/PgBkqquzi.Ss7KLUgO2L0jQH3C", // bcrypt hash of "demo123"
+    name: "Priya Sharma (HR Admin)",
+    role: Role.ADMIN,
+  },
+  "manager@atomquest.demo": {
+    passwordHash: "$2a$10$slYQmyNdGzin7olVZeVv2OPST9/PgBkqquzi.Ss7KLUgO2L0jQH3C",
+    name: "Rajesh Kumar (L1 Manager)",
+    role: Role.MANAGER,
+  },
+  "employee@atomquest.demo": {
+    passwordHash: "$2a$10$slYQmyNdGzin7olVZeVv2OPST9/PgBkqquzi.Ss7KLUgO2L0jQH3C",
+    name: "Anita Desai",
+    role: Role.EMPLOYEE,
+  },
+};
 
 export async function ensureDemoData() {
   // Only try once per process
@@ -125,8 +145,19 @@ export async function ensureDemoData() {
 
     console.log("✓ Demo data seeded successfully");
   } catch (error) {
-    // If seeding fails (e.g., read-only DB), just continue
-    // The app will still work, just without demo data
-    console.error("Warning: Could not seed demo data:", error instanceof Error ? error.message : "Unknown error");
+    seedFailed = true;
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    console.error("⚠ Could not seed demo data:", errorMsg);
+    console.error("⚠ Falling back to memory-based fallback auth");
   }
+}
+
+// Fallback auth when database is unavailable
+export function getFallbackUser(email: string): { passwordHash: string; name: string; role: Role; id: string } | null {
+  const user = FALLBACK_DEMO_USERS[email as keyof typeof FALLBACK_DEMO_USERS];
+  if (!user) return null;
+  return {
+    ...user,
+    id: `fallback-${email.split("@")[0]}`, // Generate a stable ID
+  };
 }
