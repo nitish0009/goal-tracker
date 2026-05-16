@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import { Role } from "@/generated/prisma/client";
-import { getFallbackUser } from "./ensure-seed";
+import { getFallbackUser, ensureDemoData } from "./ensure-seed";
 
 const COOKIE = "goal_portal_session";
 const secret = new TextEncoder().encode(
@@ -79,6 +79,14 @@ export async function createSession(user: {
 }
 
 export async function getSession(): Promise<SessionUser | null> {
+  // Ensure demo data exists before any session-based API logic runs
+  try {
+    await ensureDemoData();
+  } catch (e) {
+    // swallow errors; fallback auth will cover failures
+    console.error("ensureDemoData failed in getSession:", e instanceof Error ? e.message : e);
+  }
+
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE)?.value;
   if (!token) return null;
