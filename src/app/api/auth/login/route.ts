@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { login } from "@/lib/auth";
+import { ensureDemoData } from "@/lib/ensure-seed";
 
 export async function POST(req: Request) {
+  // Ensure demo data exists (for Vercel where /tmp is ephemeral)
+  await ensureDemoData();
+
   const { email, password } = await req.json();
   if (!email || !password) {
     return NextResponse.json({ error: "Email and password required" }, { status: 400 });
