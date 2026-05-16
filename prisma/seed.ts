@@ -1,12 +1,10 @@
 import "dotenv/config";
 import { PrismaClient, Role, GoalSheetStatus, UomType } from "../src/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { createPrismaClient } from "../src/lib/db";
 import bcrypt from "bcryptjs";
 import { getCycleWindows } from "../src/lib/cycles";
 
-const url = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
-const adapter = new PrismaBetterSqlite3({ url });
-const prisma = new PrismaClient({ adapter });
+const prisma: PrismaClient = createPrismaClient();
 
 async function main() {
   await prisma.auditLog.deleteMany();
@@ -50,7 +48,7 @@ async function main() {
     },
   });
 
-  const employee2 = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: "employee2@atomquest.demo",
       passwordHash: hash,
@@ -74,7 +72,7 @@ async function main() {
     });
   }
 
-  const sheet = await prisma.goalSheet.create({
+  await prisma.goalSheet.create({
     data: {
       employeeId: employee.id,
       year,
@@ -117,14 +115,14 @@ async function main() {
   console.log("  Employee:", employee.email);
   console.log("  Manager:", manager.email);
   console.log("  Admin:", admin.email);
-  console.log("  Second employee:", employee2.email);
-  console.log("Sample goal sheet:", sheet.id);
 }
 
 main()
-  .then(() => prisma.$disconnect())
-  .catch((e) => {
+  .then(async () => {
+    await prisma.$disconnect();
+  })
+  .catch(async (e) => {
     console.error(e);
-    prisma.$disconnect();
+    await prisma.$disconnect();
     process.exit(1);
   });

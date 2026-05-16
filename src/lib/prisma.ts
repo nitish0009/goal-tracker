@@ -1,14 +1,13 @@
-import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { getPrisma } from "./db";
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
-
-function createPrisma() {
-  const url = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
-  const adapter = new PrismaBetterSqlite3({ url });
-  return new PrismaClient({ adapter });
-}
-
-export const prisma = globalForPrisma.prisma ?? createPrisma();
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+/** Lazy singleton — safe for Next.js build without DATABASE_URL until first query. */
+export const prisma = new Proxy({} as ReturnType<typeof getPrisma>, {
+  get(_target, prop) {
+    const client = getPrisma();
+    const value = client[prop as keyof typeof client];
+    if (typeof value === "function") {
+      return (value as (...args: unknown[]) => unknown).bind(client);
+    }
+    return value;
+  },
+});

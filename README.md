@@ -20,9 +20,13 @@ Use **Quick demo login** buttons on the sign-in page, or sign in manually.
 
 ## Quick start
 
+1. Copy `.env.example` to `.env` and set `DATABASE_URL` (PostgreSQL) and `JWT_SECRET`.
+2. Use a free [Neon](https://neon.tech) database or local Postgres.
+
 ```bash
+cp .env.example .env
 npm install
-npx prisma migrate dev
+npx prisma migrate deploy
 npm run db:seed
 npm run dev
 ```
@@ -42,22 +46,42 @@ flowchart TB
   end
   subgraph data [Data Layer]
     Prisma[Prisma ORM 7]
-    SQLite[(SQLite file)]
+    Postgres[(PostgreSQL / Neon)]
   end
   UI --> API
   API --> Auth
   API --> Prisma
-  Prisma --> SQLite
+  Prisma --> Postgres
 ```
 
 | Layer | Choice | Rationale |
 |-------|--------|-----------|
 | Frontend | Next.js 16, React 19, Tailwind CSS 4 | Single codebase, SSR, fast hackathon delivery |
 | Backend | Next.js Route Handlers | No separate API server; low hosting cost |
-| Database | SQLite + Prisma | Zero external DB cost; portable demo |
+| Database | PostgreSQL + Prisma | Required for Vercel serverless; use Neon free tier |
 | Auth | JWT in httpOnly cookies | Simple role-based access (Employee / Manager / Admin) |
 
-**Cost optimisation:** Single Node process, embedded SQLite, no paid cloud DB or auth SaaS required for the demo. Production could swap SQLite for PostgreSQL and add Entra ID (see BRD good-to-haves).
+**Cost optimisation:** Single Next.js deployment on Vercel free tier + Neon PostgreSQL free tier. No paid auth SaaS required for the demo.
+
+## Deploy on Vercel
+
+1. Push this repo to GitHub: [goal-tracker](https://github.com/nitish0009/goal-tracker)
+2. Import the project in [Vercel](https://vercel.com/new)
+3. Add **Environment Variables** (Production + Preview):
+
+   | Variable | Value |
+   |----------|--------|
+   | `DATABASE_URL` | PostgreSQL connection string from [Neon](https://neon.tech) (use **pooled** URL for serverless) |
+   | `JWT_SECRET` | Long random string (e.g. `openssl rand -base64 32`) |
+
+4. Deploy — build runs `prisma migrate deploy` then `next build` via `vercel-build`.
+5. After first deploy, seed demo data from your machine:
+
+   ```bash
+   DATABASE_URL="your-neon-url" npm run db:seed
+   ```
+
+**Note:** SQLite is not supported on Vercel (read-only/ephemeral filesystem). Use PostgreSQL only.
 
 ## Features implemented
 
@@ -98,7 +122,9 @@ flowchart TB
 ## Scripts
 
 - `npm run dev` — development server
-- `npm run build` — production build
+- `npm run build` — local production build
+- `npm run vercel-build` — Vercel build (migrate + Next.js)
+- `npm run db:deploy` — apply migrations to production DB
 - `npm run db:seed` — reset demo users and sample data
 - `npm run db:reset` — migrate reset + seed
 
